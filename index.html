@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Study Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --s1: #141414;
+    --s2: #1c1c1c;
+    --s3: #242424;
+    --border: #2e2e2e;
+    --text: #e8e8e8;
+    --muted: #666;
+    --muted2: #444;
+    --ml: #00d4aa;
+    --dsa: #ff9500;
+    --li: #0a8fff;
+    --done: #2ecc71;
+    --phase1: #00d4aa;
+    --phase2: #7c6cfc;
+    --phase3: #fc6c8f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 56px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--s1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    justify-content: space-between;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ml);
+    letter-spacing: 1px;
+  }
+
+  .streak-pill {
+    background: var(--s3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .streak-num {
+    color: var(--dsa);
+    font-weight: 600;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-global {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .progress-bar-wrap {
+    width: 120px;
+    height: 4px;
+    background: var(--s3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ml), var(--li));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .today-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--s1);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted2);
+    padding: 12px 16px 6px;
+  }
+
+  .week-group { margin-bottom: 4px; }
+
+  .week-header {
+    padding: 6px 16px;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color 0.15s;
+  }
+
+  .week-header:hover { color: var(--text); }
+
+  .week-days { display: none; }
+  .week-days.open { display: block; }
+
+  .day-item {
+    padding: 7px 16px 7px 28px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+  }
+
+  .day-item:hover { background: var(--s2); color: var(--text); }
+
+  .day-item.active {
+    background: var(--s2);
+    color: var(--text);
+    border-left-color: var(--ml);
+  }
+
+  .day-item.completed { color: var(--muted); }
+
+  .day-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .day-item.completed .day-dot { background: var(--done); }
+  .day-item.active .day-dot { background: var(--ml); }
+
+  .day-name { flex: 1; font-family: 'IBM Plex Mono', monospace; }
+
+  .day-check {
+    font-size: 10px;
+    color: var(--done);
+    opacity: 0;
+  }
+  .day-item.completed .day-check { opacity: 1; }
+
+  /* MAIN */
+  .main {
+    overflow-y: auto;
+    padding: 28px 32px;
+    background: var(--bg);
+  }
+
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Day header */
+  .day-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .day-title-wrap {}
+
+  .day-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .day-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .day-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .day-complete-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--s2);
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .day-complete-btn:hover { border-color: var(--done); color: var(--done); }
+  .day-complete-btn.done { background: rgba(46,204,113,0.1); border-color: var(--done); color: var(--done); }
+
+  /* Cards */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card {
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .card.ml::before { background: var(--ml); }
+  .card.dsa::before { background: var(--dsa); }
+  .card.li::before { background: var(--li); }
+  .card.review::before { background: var(--muted); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .card-icon { font-size: 16px; }
+
+  .card-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .card.ml .card-label { color: var(--ml); }
+  .card.dsa .card-label { color: var(--dsa); }
+  .card.li .card-label { color: var(--li); }
+  .card.review .card-label { color: var(--muted); }
+
+  .card-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .card-topic {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .card-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .card-items li {
+    font-size: 12px;
+    color: var(--muted);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.4;
+  }
+
+  .card-items li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--muted2);
+  }
+
+  .card-items li.done-item {
+    text-decoration: line-through;
+    opacity: 0.4;
+  }
+
+  /* Problem list */
+  .problem-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .problem-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--s2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .problem-row:hover { background: var(--s3); }
+
+  .problem-check {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.15s;
+  }
+
+  .problem-row.solved .problem-check {
+    background: var(--done);
+    border-color: var(--done);
+    color: white;
+  }
+
+  .problem-name {
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .problem-row.solved .problem-name {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .problem-diff {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .diff-easy { background: rgba(46,204,113,0.12); color: #2ecc71; }
+  .diff-med { background: rgba(255,149,0,0.12); color: #ff9500; }
+  .diff-hard { background: rgba(255,59,59,0.12); color: #ff3b3b; }
+
+  /* LinkedIn card */
+  .li-hook {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .li-tip {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .li-tip strong { color: var(--li); }
+
+  /* Full width card */
+  .card-full {
+    grid-column: 1 / -1;
+  }
+
+  /* Phase badge */
+  .phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .phase-badge.p1 { background: rgba(0,212,170,0.1); color: var(--ml); border: 1px solid rgba(0,212,170,0.2); }
+  .phase-badge.p2 { background: rgba(124,108,252,0.1); color: #7c6cfc; border: 1px solid rgba(124,108,252,0.2); }
+  .phase-badge.p3 { background: rgba(252,108,143,0.1); color: #fc6c8f; border: 1px solid rgba(252,108,143,0.2); }
+
+  /* Review card */
+  .review-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .review-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--muted);
+  }
+
+  /* No day selected */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 12px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 8px; }
+
+  @media (max-width: 700px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 56px auto 1fr; }
+    .sidebar { display: none; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">study.exe</div>
+    <div class="streak-pill">🔥 <span class="streak-num" id="streakNum">0</span> day streak</div>
+  </div>
+  <div class="topbar-right">
+    <div class="progress-global">
+      <span id="progressLabel">0 / 91 days</span>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="today-label" id="todayLabel"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar"></div>
+
+<!-- MAIN -->
+<div class="main" id="main">
+  <div class="empty-state">
+    <div class="empty-icon">📅</div>
+    <div>Select a day to begin</div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const START_DATE = new Date();
+START_DATE.setHours(0,0,0,0);
+
+// ML/Stats topics: 91 days, 13 weeks
+// Week 1-3: Phase 1 (Foundations), Week 4-6: Phase 2 (Classical ML), Week 7-10: Phase 3 (DL), Week 11-13: Phase 4 (Advanced)
+// DSA: parallel track every day
+
+const ML_TOPICS = [
+  // WEEK 1 — Probability
+  { topic: "Probability Basics", items: ["Sample spaces, events, axioms of probability", "Conditional probability P(A|B)", "Independence vs mutual exclusivity", "Solve 5 probability problems from scratch"] },
+  { topic: "Bayes' Theorem", items: ["Derive Bayes' from conditional probability", "Naive Bayes intuition", "Prior, likelihood, posterior — understand each term", "Medical diagnosis example end-to-end"] },
+  { topic: "Discrete Distributions", items: ["Bernoulli & Binomial distributions", "Poisson distribution — when to use it", "Geometric distribution", "PMF, CDF — compute by hand for small examples"] },
+  { topic: "Continuous Distributions", items: ["Uniform, Exponential distributions", "Normal distribution — derive the shape intuition", "PDF vs CDF — sketch both", "Z-scores and standardization"] },
+  { topic: "Expectation & Variance", items: ["E[X], Var(X) — definitions and intuition", "Linearity of expectation", "Covariance and correlation coefficient", "Compute E[X] and Var(X) for Binomial"] },
+  // WEEK 1 SAT
+  { topic: "CLT & Law of Large Numbers", items: ["Law of Large Numbers — formal statement + intuition", "Central Limit Theorem — why it's magic", "Why sample means are normally distributed", "Simulate CLT in Python (optional)"] },
+  // WEEK 1 SUN — review
+  { topic: "Week 1 Review: Probability", items: ["Flashcard review: all distributions", "Redo 3 problems you found hardest this week", "Write down 5 things you'd explain to someone else", "Plan Week 2 topics"] },
+
+  // WEEK 2 — Statistics
+  { topic: "MLE — Maximum Likelihood", items: ["Likelihood function — what it means geometrically", "Derive MLE for Bernoulli distribution", "Derive MLE for Gaussian distribution", "Why log-likelihood is used in practice"] },
+  { topic: "MAP Estimation", items: ["MAP vs MLE — what changes", "Role of the prior in MAP", "MAP with Gaussian prior = L2 regularization", "Work through one MAP derivation fully"] },
+  { topic: "Hypothesis Testing", items: ["Null hypothesis, alternative hypothesis", "Type I and Type II errors — what they cost", "p-value — what it actually means (not 'probability H0 is true')", "t-test from scratch"] },
+  { topic: "Confidence Intervals & A/B Testing", items: ["95% CI — correct interpretation", "Standard error vs standard deviation", "A/B test: when is a result significant?", "Calculate sample size for an A/B test"] },
+  { topic: "Bias-Variance Tradeoff", items: ["Bias, variance, irreducible error decomposition", "Why high complexity → low bias, high variance", "Sketch the bias-variance curves", "Relate to overfitting and underfitting"] },
+  { topic: "Cross-Validation & Regularization", items: ["K-fold cross-validation — why it works", "Leave-one-out CV — when to use", "L1 (Lasso) vs L2 (Ridge) — geometric intuition", "Why L1 produces sparse solutions"] },
+  { topic: "Week 2 Review: Statistics", items: ["Redo MLE derivation for Gaussian from memory", "Explain bias-variance tradeoff in your own words", "3 hypothesis testing problems", "Write LinkedIn post draft on MLE or Bayes"] },
+
+  // WEEK 3 — Linear Algebra & Calculus
+  { topic: "Vectors & Matrix Operations", items: ["Dot product — geometric meaning", "Matrix multiplication — row × column intuition", "Transpose, inverse, rank", "Implement matmul from scratch in NumPy"] },
+  { topic: "Eigenvalues & Eigenvectors", items: ["What Av = λv means geometrically", "Find eigenvalues of a 2×2 matrix by hand", "Eigenvectors of symmetric matrices are orthogonal", "How this connects to PCA"] },
+  { topic: "SVD — Singular Value Decomposition", items: ["A = UΣVᵀ — what each matrix means", "SVD vs eigendecomposition", "Low-rank approximation intuition", "Applications: PCA, recommender systems, compression"] },
+  { topic: "Calculus for ML: Gradients", items: ["Partial derivatives — compute for simple functions", "Gradient = direction of steepest ascent", "Gradient descent update rule derived", "Compute gradient of MSE loss manually"] },
+  { topic: "Chain Rule & Backpropagation", items: ["Chain rule for composite functions", "Apply chain rule to a 2-layer network by hand", "Why backprop is just the chain rule", "Computational graphs — build a tiny one"] },
+  { topic: "Optimization Intuition", items: ["Convex vs non-convex loss surfaces", "Local minima, saddle points in practice", "Why SGD escapes saddle points", "Learning rate — too high vs too low"] },
+  { topic: "Week 3 Review: Linear Algebra + Calculus", items: ["Derive gradient of cross-entropy loss", "Redo SVD intuition from scratch", "5 linear algebra interview questions", "Finalize LinkedIn post for this week"] },
+
+  // WEEK 4 — Linear Models
+  { topic: "Linear Regression", items: ["Derive OLS solution: β = (XᵀX)⁻¹Xᵀy", "Assumptions of linear regression", "MSE, R², adjusted R²", "Implement from scratch in NumPy — no sklearn"] },
+  { topic: "Logistic Regression", items: ["Sigmoid function — why it works for probability", "Cross-entropy loss — derive it from MLE", "Gradient of logistic loss", "Implement logistic regression from scratch"] },
+  { topic: "Regularization: Ridge & Lasso", items: ["Ridge regression — closed form solution", "Lasso — why coordinate descent is needed", "ElasticNet — when to use it", "Tune regularization strength on a dataset"] },
+  { topic: "Support Vector Machines", items: ["Maximum margin classifier intuition", "Support vectors — what they are geometrically", "Soft-margin SVM — slack variables", "Kernel trick — RBF, polynomial kernels"] },
+  { topic: "Decision Trees", items: ["Information gain and Gini impurity — compute both", "How splits are chosen", "Pruning — pre vs post pruning", "Implement a decision stump from scratch"] },
+  { topic: "Evaluation Metrics", items: ["Precision, recall, F1 — when each matters", "AUC-ROC — what the curve tells you", "Precision-Recall curve — when to use over ROC", "Confusion matrix deep dive"] },
+  { topic: "Week 4 Review: Linear Models", items: ["Derive logistic regression gradient from scratch", "5 interview Qs on linear/logistic regression", "Implement and test decision tree on Iris dataset", "LinkedIn: 'I implemented logistic regression from scratch'"] },
+
+  // WEEK 5 — Ensembles
+  { topic: "Random Forests", items: ["Bagging — bootstrap aggregating explained", "Feature randomness in Random Forests", "Out-of-bag error estimate", "Feature importance — how it's computed"] },
+  { topic: "Gradient Boosting", items: ["Boosting vs bagging — key difference", "Gradient boosting: fit residuals iteratively", "Loss functions in GBM", "Why GBM often beats Random Forest"] },
+  { topic: "XGBoost & LightGBM", items: ["XGBoost: regularized objective function", "LightGBM: leaf-wise vs level-wise splitting", "Handling missing values in XGBoost", "Hyperparameter tuning: n_estimators, max_depth, lr"] },
+  { topic: "Unsupervised: K-Means & DBSCAN", items: ["K-Means algorithm — E step and M step", "K-Means++ initialization", "DBSCAN: core points, border points, noise", "Choosing K: elbow method, silhouette score"] },
+  { topic: "PCA — Principal Component Analysis", items: ["PCA as variance maximization", "Derive PCA from SVD", "Scree plot and explained variance", "Implement PCA from scratch using numpy SVD"] },
+  { topic: "Feature Engineering", items: ["Handling missing data: imputation strategies", "Encoding categoricals: one-hot, ordinal, target", "Feature scaling: when to use StandardScaler vs MinMax", "Feature selection: RFE, correlation, importance"] },
+  { topic: "Week 5 Review: Ensembles + Unsupervised", items: ["Explain gradient boosting to a 10-year-old", "Implement K-Means from scratch", "PCA on a real dataset — plot first 2 components", "LinkedIn: gradient boosting or XGBoost post"] },
+
+  // WEEK 6 — ML Systems
+  { topic: "ML Pipeline Design", items: ["Train/val/test split — why and how much", "Data leakage — 3 common ways it happens", "Reproducibility: seeds, versioning", "sklearn Pipeline object — build end-to-end"] },
+  { topic: "Handling Imbalanced Data", items: ["Why accuracy is misleading on imbalanced data", "SMOTE — synthetic minority oversampling", "Class weights in loss function", "When to oversample vs undersample"] },
+  { topic: "Model Selection & Hyperparameter Tuning", items: ["Grid search vs random search vs Bayesian opt", "Nested cross-validation for unbiased evaluation", "Early stopping — when and why", "Learning curves — diagnose overfitting/underfitting"] },
+  { topic: "ML Interview Blitz — Part 1", items: ["What happens if you remove the bias term?", "Why does normalization help gradient descent?", "Explain the kernel trick without math", "SVM vs logistic regression — when to use which?"] },
+  { topic: "ML Interview Blitz — Part 2", items: ["How do you handle multicollinearity?", "What is the curse of dimensionality?", "Why is tree pruning necessary?", "What does AUC = 0.5 mean?"] },
+  { topic: "Classical ML Project Day", items: ["Pick dataset (Titanic / House Prices / Credit fraud)", "Build full pipeline: EDA → features → model → eval", "Try 3 models, compare with CV", "Write up findings clearly"] },
+  { topic: "Week 6 Review: ML Systems", items: ["5 ML system design Qs", "Review weakest classical ML topic", "Polish any code from this week", "LinkedIn: data leakage post or ML pipelines post"] },
+
+  // WEEK 7 — Neural Net Fundamentals
+  { topic: "Neural Network Basics", items: ["Perceptron to MLP — add layers, add power", "Activation functions: ReLU, sigmoid, tanh, GELU", "Why non-linearity is necessary", "Universal approximation theorem — intuition"] },
+  { topic: "Backpropagation", items: ["Forward pass: cache activations", "Backward pass: chain rule all the way down", "Derive gradients for a 2-layer net by hand", "Implement backprop for XOR problem from scratch"] },
+  { topic: "Optimization Algorithms", items: ["SGD with momentum — why momentum helps", "RMSprop — adaptive learning rates", "Adam = momentum + RMSprop — derive update rule", "Learning rate schedules: step, cosine, warmup"] },
+  { topic: "Regularization in DL", items: ["Dropout — what it does at train vs test time", "Batch Normalization — normalize activations why?", "Layer Normalization — how it differs from BatchNorm", "Weight decay = L2 regularization in DL"] },
+  { topic: "Loss Functions", items: ["MSE for regression, cross-entropy for classification", "Focal loss — for imbalanced classification", "Contrastive loss and triplet loss intuition", "KL divergence — where it shows up in ML"] },
+  { topic: "Training Dynamics", items: ["Vanishing vs exploding gradients — causes", "Gradient clipping", "Xavier / He initialization — which for which activation", "Why deep networks are hard to train naively"] },
+  { topic: "Week 7 Review: NN Fundamentals", items: ["Implement MLP from scratch in PyTorch (no nn.Module)", "Explain BatchNorm vs LayerNorm to someone", "5 DL interview Qs on backprop & optimization", "LinkedIn: backprop post or Adam optimizer post"] },
+
+  // WEEK 8 — CNNs
+  { topic: "Convolutions", items: ["2D convolution — compute output size manually", "Stride, padding — formula: ⌊(n+2p-f)/s⌋+1", "Depthwise separable convolutions", "1×1 convolutions — what they do"] },
+  { topic: "CNN Architectures", items: ["LeNet → AlexNet → VGG progression", "ResNet — skip connections solve vanishing gradient", "EfficientNet — compound scaling", "Understand one architecture in full detail"] },
+  { topic: "Transfer Learning", items: ["Feature extraction vs fine-tuning — when each", "Freezing layers — which ones and why", "Domain adaptation intuition", "Fine-tune ResNet50 on a small dataset in PyTorch"] },
+  { topic: "Object Detection Intuition", items: ["Sliding window approach and its problems", "YOLO: you only look once — grid cell prediction", "Anchor boxes, IoU, NMS", "Two-stage (Faster RCNN) vs one-stage (YOLO)"] },
+  { topic: "Image Segmentation Basics", items: ["Semantic vs instance segmentation", "U-Net architecture — encoder-decoder with skip", "FCN — fully convolutional networks", "Evaluation: mIoU, Dice coefficient"] },
+  { topic: "CV Interview Prep", items: ["How does backprop work through a conv layer?", "Why does max pooling help?", "What is the receptive field of a neuron?", "ResNet vs DenseNet — trade-offs"] },
+  { topic: "Week 8 Review: CNNs", items: ["Build image classifier: ResNet fine-tune on CIFAR-10", "Explain skip connections without diagrams", "5 CV interview questions", "LinkedIn: transfer learning or ResNet post"] },
+
+  // WEEK 9 — Transformers
+  { topic: "Attention Mechanism", items: ["Query, Key, Value — the library analogy", "Scaled dot-product attention: softmax(QKᵀ/√d)V", "Why scale by √d?", "Compute attention by hand for a 3-token sequence"] },
+  { topic: "Multi-Head Attention & Transformer", items: ["Why multiple heads?", "Positional encoding — sinusoidal and learned", "Encoder block: MHA + FFN + LayerNorm + residual", "Decoder block: masked attention + cross-attention"] },
+  { topic: "BERT vs GPT", items: ["BERT: bidirectional, masked LM pretraining", "GPT: autoregressive, causal LM", "When to use BERT vs GPT for a task", "Fine-tune BERT on a classification task in HuggingFace"] },
+  { topic: "Fine-tuning & PEFT", items: ["Full fine-tuning vs feature extraction", "LoRA: low-rank adaptation — why it works", "Prompt tuning and prefix tuning", "When to use LoRA vs full fine-tune"] },
+  { topic: "Transformer Variants", items: ["T5: text-to-text framework", "Vision Transformer (ViT): patches as tokens", "CLIP: contrastive image-text pretraining", "Efficient transformers: Longformer, Performer, FlashAttention"] },
+  { topic: "Implement Mini-Transformer", items: ["Code multi-head attention from scratch", "Build transformer encoder block in PyTorch", "Train on a toy sequence task", "Inspect attention weights — what does the model attend to?"] },
+  { topic: "Week 9 Review: Transformers", items: ["Explain attention to a non-ML friend", "5 transformer interview questions", "Review your existing NLP project with fresh eyes", "LinkedIn: attention mechanism post (your strong suit)"] },
+
+  // WEEK 10 — LLMs & Modern DL
+  { topic: "LLMs: Pretraining & Scaling", items: ["Scaling laws: compute, data, parameters", "Emergent abilities — what they are and why", "Tokenization: BPE, WordPiece in detail", "Why context window length matters"] },
+  { topic: "RLHF & Instruction Tuning", items: ["SFT: supervised fine-tuning on demonstrations", "Reward model training", "PPO: proximal policy optimization simplified", "DPO: direct preference optimization — simpler than PPO"] },
+  { topic: "RAG Systems", items: ["Retrieval-Augmented Generation — why it beats fine-tuning for knowledge", "Vector databases: FAISS, Pinecone, Chroma", "Chunking strategies — fixed, semantic, hierarchical", "Build a simple RAG pipeline end-to-end"] },
+  { topic: "Diffusion Models Intuition", items: ["Forward process: add noise until Gaussian", "Reverse process: learn to denoise", "DDPM vs DDIM — speed vs quality trade-off", "Why diffusion beats GAN for image generation"] },
+  { topic: "Multimodal Models", items: ["CLIP: contrastive image-text alignment", "BLIP / BLIP-2: bootstrapping language-image pretraining", "LLaVA: connecting vision encoder to LLM", "Use cases: image captioning, VQA, text-to-image"] },
+  { topic: "LLM Project Day", items: ["Build something: RAG chatbot, summarizer, or classifier", "Use LangChain or direct HuggingFace", "Evaluate with ROUGE or manual inspection", "Document on GitHub"] },
+  { topic: "Week 10 Review: LLMs", items: ["Explain RLHF in simple terms", "5 LLM interview questions", "Review your RAG pipeline", "LinkedIn: RAG or LLM post — very high engagement topic"] },
+
+  // WEEK 11 — ML Systems Design
+  { topic: "Data Pipelines", items: ["Batch vs streaming data ingestion", "Feature stores: what they solve", "Data versioning: DVC, Delta Lake basics", "Schema validation and data quality checks"] },
+  { topic: "Model Serving", items: ["REST API vs gRPC for model serving", "Latency vs throughput trade-off", "Model quantization: INT8, FP16", "TorchServe / FastAPI — serve a model today"] },
+  { topic: "Monitoring & Drift", items: ["Data drift vs concept drift — examples", "Population Stability Index (PSI)", "Model performance degradation signals", "Alerting systems for ML in production"] },
+  { topic: "ML System Design Framework", items: ["Frame the problem: constraints, scale, latency SLAs", "Data collection and labeling strategy", "Feature engineering at scale", "Model selection and offline vs online eval"] },
+  { topic: "ML System Design Practice", items: ["Design: YouTube recommendation system", "Design: fraud detection at Stripe", "Design: search ranking at LinkedIn", "Practice explaining trade-offs out loud"] },
+  { topic: "A/B Testing in Production", items: ["Randomization unit — user, session, request", "Statistical power and sample size calculation", "Novelty effect and how to handle it", "Multi-armed bandits vs A/B tests"] },
+  { topic: "Week 11 Review: ML Systems", items: ["Do a full mock ML system design interview", "5 MLOps interview questions", "Document one project with system design thinking", "LinkedIn: ML in production post"] },
+
+  // WEEK 12 — Portfolio
+  { topic: "GitHub Portfolio Audit", items: ["Review all repos — README, code quality, results", "Add metrics and visualizations to each project", "Pin your best 4 repos", "Make sure everything runs end-to-end"] },
+  { topic: "Project: Polish Skingenius Work", items: ["Document the ingredient_analyzer pipeline", "Write up the architecture, decisions made, results", "Add to GitHub with clean README", "Frame it as a DS/ML problem, not just engineering"] },
+  { topic: "Project: Build CV/Tabular Project", items: ["Choose: image classifier, tabular competition, or RL env", "Implement, train, evaluate", "Write up clearly", "Push to GitHub"] },
+  { topic: "Project: AgriGPT Deep Dive", items: ["Document architecture and results", "Highlight the 42% latency reduction and 16% Precision@10", "Write a technical blog post format README", "Deploy demo if possible (Streamlit / HF Spaces)"] },
+  { topic: "Resume Alignment Day", items: ["Cross-check resume bullets vs GitHub", "Every metric must be reproducible", "Add new projects to resume", "Tailor for 3 target job descriptions"] },
+  { topic: "Mock Technical Screen", items: ["1 hour: 2 ML concept questions + 1 coding problem", "Record yourself explaining a project", "Get a peer or use Pramp", "Write down every question you stumbled on"] },
+  { topic: "Week 12 Review: Portfolio", items: ["Final GitHub review", "Update LinkedIn with new projects", "Prioritize top 3 portfolio pieces", "LinkedIn: project showcase post"] },
+
+  // WEEK 13 — Interview Simulation
+  { topic: "Stats + Prob Interview Blitz", items: ["10 probability questions timed", "MLE derivation from scratch", "Explain CLT and when it breaks down", "Bayesian vs frequentist — articulate clearly"] },
+  { topic: "Classical ML Interview Blitz", items: ["Derive logistic regression update rule", "Random Forest vs Gradient Boosting — when each?", "Explain PCA to a PM", "SVM kernel trick without equations"] },
+  { topic: "DL Interview Blitz", items: ["Backprop through a conv layer", "BatchNorm at test time — what changes?", "Why does attention scale by √d?", "BERT for classification: what do you fine-tune?"] },
+  { topic: "Coding Interview Practice", items: ["2 medium LeetCode problems timed 45 min total", "1 ML from scratch problem (e.g. k-means)", "Walk through solution out loud", "Review time/space complexity of everything"] },
+  { topic: "Behavioral + Project Deep-Dives", items: ["STAR format: 3 stories about your projects", "Tell me about a time you had ambiguous requirements", "What's the hardest technical problem you solved?", "Why data science / ML?"] },
+  { topic: "Full Mock Interview Day", items: ["60 min: stats + ML + DL questions", "45 min: 2 coding problems", "30 min: system design", "Debrief: what was shaky? Fix it."] },
+  { topic: "Week 13 Review: You're Ready", items: ["List your top 5 strongest topics", "List your top 3 weakest — review one more time", "Update your study notes doc", "LinkedIn: '13 weeks of ML study — here's what I learned'"] },
+];
+
+// DSA problems — 3 per day, cycling through NeetCode 150 pattern
+const DSA_SCHEDULE = [
+  // Week 1 — Arrays & Hashing
+  { pattern: "Arrays & Hashing", probs: [["Two Sum", "easy"], ["Contains Duplicate", "easy"], ["Valid Anagram", "easy"]] },
+  { pattern: "Arrays & Hashing", probs: [["Group Anagrams", "med"], ["Top K Frequent Elements", "med"], ["Encode & Decode Strings", "med"]] },
+  { pattern: "Arrays & Hashing", probs: [["Product of Array Except Self", "med"], ["Valid Sudoku", "med"], ["Longest Consecutive Sequence", "med"]] },
+  { pattern: "Two Pointers", probs: [["Valid Palindrome", "easy"], ["Two Sum II", "med"], ["3Sum", "med"]] },
+  { pattern: "Two Pointers", probs: [["Container With Most Water", "med"], ["Trapping Rain Water", "hard"], ["Move Zeroes", "easy"]] },
+  { pattern: "Sliding Window", probs: [["Best Time to Buy & Sell Stock", "easy"], ["Longest Substring Without Repeating", "med"], ["Permutation in String", "med"]] },
+  { pattern: "Sliding Window", probs: [["Longest Repeating Char Replacement", "med"], ["Minimum Window Substring", "hard"], ["Sliding Window Maximum", "hard"]] },
+  // Week 2 — Stack & Binary Search
+  { pattern: "Stack", probs: [["Valid Parentheses", "easy"], ["Min Stack", "med"], ["Evaluate Reverse Polish Notation", "med"]] },
+  { pattern: "Stack", probs: [["Generate Parentheses", "med"], ["Daily Temperatures", "med"], ["Car Fleet", "med"]] },
+  { pattern: "Stack", probs: [["Largest Rectangle in Histogram", "hard"], ["Basic Calculator II", "med"], ["Decode String", "med"]] },
+  { pattern: "Binary Search", probs: [["Binary Search", "easy"], ["Search a 2D Matrix", "med"], ["Koko Eating Bananas", "med"]] },
+  { pattern: "Binary Search", probs: [["Find Min in Rotated Sorted Array", "med"], ["Search in Rotated Sorted Array", "med"], ["Time Based Key-Value Store", "med"]] },
+  { pattern: "Binary Search", probs: [["Median of Two Sorted Arrays", "hard"], ["Find Peak Element", "med"], ["Split Array Largest Sum", "hard"]] },
+  { pattern: "Linked List", probs: [["Reverse Linked List", "easy"], ["Merge Two Sorted Lists", "easy"], ["Linked List Cycle", "easy"]] },
+  // Week 3 — Linked List & Trees
+  { pattern: "Linked List", probs: [["Reorder List", "med"], ["Remove Nth Node From End", "med"], ["LRU Cache", "med"]] },
+  { pattern: "Linked List", probs: [["Merge K Sorted Lists", "hard"], ["Reverse Nodes in K-Group", "hard"], ["Copy List with Random Pointer", "med"]] },
+  { pattern: "Trees — BFS/DFS", probs: [["Invert Binary Tree", "easy"], ["Maximum Depth of Binary Tree", "easy"], ["Diameter of Binary Tree", "easy"]] },
+  { pattern: "Trees — BFS/DFS", probs: [["Balanced Binary Tree", "easy"], ["Same Tree", "easy"], ["Subtree of Another Tree", "easy"]] },
+  { pattern: "Trees — BFS/DFS", probs: [["Lowest Common Ancestor of BST", "med"], ["Binary Tree Level Order Traversal", "med"], ["Binary Tree Right Side View", "med"]] },
+  { pattern: "Trees — Advanced", probs: [["Count Good Nodes in Binary Tree", "med"], ["Validate Binary Search Tree", "med"], ["Kth Smallest Element in BST", "med"]] },
+  { pattern: "Trees — Advanced", probs: [["Construct Binary Tree from Preorder & Inorder", "med"], ["Binary Tree Maximum Path Sum", "hard"], ["Serialize & Deserialize Binary Tree", "hard"]] },
+  // Week 4 — Heap & Graphs
+  { pattern: "Heap / Priority Queue", probs: [["Kth Largest Element in Array", "med"], ["Last Stone Weight", "easy"], ["K Closest Points to Origin", "med"]] },
+  { pattern: "Heap / Priority Queue", probs: [["Task Scheduler", "med"], ["Design Twitter", "med"], ["Find Median from Data Stream", "hard"]] },
+  { pattern: "Graphs — BFS/DFS", probs: [["Number of Islands", "med"], ["Max Area of Island", "med"], ["Clone Graph", "med"]] },
+  { pattern: "Graphs — BFS/DFS", probs: [["Walls and Gates", "med"], ["Rotting Oranges", "med"], ["Pacific Atlantic Water Flow", "med"]] },
+  { pattern: "Graphs — BFS/DFS", probs: [["Surrounded Regions", "med"], ["Course Schedule", "med"], ["Course Schedule II", "med"]] },
+  { pattern: "Graphs — Advanced", probs: [["Redundant Connection", "med"], ["Number of Connected Components", "med"], ["Graph Valid Tree", "med"]] },
+  { pattern: "Graphs — Advanced", probs: [["Word Ladder", "hard"], ["Alien Dictionary", "hard"], ["Cheapest Flights Within K Stops", "med"]] },
+  // Week 5 — DP 1D
+  { pattern: "DP — 1D", probs: [["Climbing Stairs", "easy"], ["House Robber", "med"], ["House Robber II", "med"]] },
+  { pattern: "DP — 1D", probs: [["Longest Palindromic Substring", "med"], ["Palindromic Substrings", "med"], ["Decode Ways", "med"]] },
+  { pattern: "DP — 1D", probs: [["Coin Change", "med"], ["Maximum Product Subarray", "med"], ["Word Break", "med"]] },
+  { pattern: "DP — 1D", probs: [["Longest Increasing Subsequence", "med"], ["Partition Equal Subset Sum", "med"], ["Target Sum", "med"]] },
+  { pattern: "DP — 2D", probs: [["Unique Paths", "med"], ["Longest Common Subsequence", "med"], ["Best Time to Buy & Sell Stock w/ Cooldown", "med"]] },
+  { pattern: "DP — 2D", probs: [["Coin Change II", "med"], ["Edit Distance", "hard"], ["Interleaving String", "hard"]] },
+  { pattern: "DP — 2D", probs: [["Distinct Subsequences", "hard"], ["Burst Balloons", "hard"], ["Regular Expression Matching", "hard"]] },
+  // Week 6 — Greedy & Intervals
+  { pattern: "Greedy", probs: [["Maximum Subarray", "med"], ["Jump Game", "med"], ["Jump Game II", "med"]] },
+  { pattern: "Greedy", probs: [["Gas Station", "med"], ["Hand of Straights", "med"], ["Merge Triplets to Form Target", "med"]] },
+  { pattern: "Intervals", probs: [["Insert Interval", "med"], ["Merge Intervals", "med"], ["Non-overlapping Intervals", "med"]] },
+  { pattern: "Intervals", probs: [["Meeting Rooms", "easy"], ["Meeting Rooms II", "med"], ["Minimum Interval to Include Query", "hard"]] },
+  { pattern: "Bit Manipulation", probs: [["Single Number", "easy"], ["Number of 1 Bits", "easy"], ["Counting Bits", "easy"]] },
+  { pattern: "Bit Manipulation", probs: [["Reverse Bits", "easy"], ["Missing Number", "easy"], ["Sum of Two Integers", "med"]] },
+  { pattern: "Bit Manipulation", probs: [["Reverse Integer", "med"], ["Power of Two", "easy"], ["Subsets", "med"]] },
+  // Week 7–8: Backtracking + Hard
+  { pattern: "Backtracking", probs: [["Subsets", "med"], ["Combination Sum", "med"], ["Permutations", "med"]] },
+  { pattern: "Backtracking", probs: [["Subsets II", "med"], ["Combination Sum II", "med"], ["Word Search", "med"]] },
+  { pattern: "Backtracking", probs: [["Palindrome Partitioning", "med"], ["Letter Combinations of Phone Number", "med"], ["N-Queens", "hard"]] },
+  { pattern: "Trie", probs: [["Implement Trie", "med"], ["Design Add and Search Words", "med"], ["Word Search II", "hard"]] },
+  { pattern: "Math & Geometry", probs: [["Rotate Image", "med"], ["Spiral Matrix", "med"], ["Set Matrix Zeroes", "med"]] },
+  { pattern: "Math & Geometry", probs: [["Happy Number", "easy"], ["Plus One", "easy"], ["Pow(x,n)", "med"]] },
+  { pattern: "Math & Geometry", probs: [["Multiply Strings", "med"], ["Detect Squares", "med"], ["Largest Number", "med"]] },
+  { pattern: "Hard Problems", probs: [["Minimum Window Substring", "hard"], ["Maximal Rectangle", "hard"], ["Trapping Rain Water", "hard"]] },
+  { pattern: "Hard Problems", probs: [["N-Queens II", "hard"], ["Sudoku Solver", "hard"], ["Word Ladder II", "hard"]] },
+  { pattern: "Hard Problems", probs: [["Longest Consecutive Sequence", "med"], ["Median of Two Sorted Arrays", "hard"], ["LFU Cache", "hard"]] },
+  { pattern: "Hard Problems", probs: [["Find K-th Largest in Stream", "hard"], ["Maximum Profit in Job Scheduling", "hard"], ["Strange Printer", "hard"]] },
+  { pattern: "Contest Prep", probs: [["LC Weekly Contest Q1", "easy"], ["LC Weekly Contest Q2", "med"], ["LC Weekly Contest Q3", "hard"]] },
+  { pattern: "Contest Prep", probs: [["Sliding Window + DP combo", "hard"], ["Graph + BFS combo", "hard"], ["Tree + DP combo", "hard"]] },
+  { pattern: "Contest Prep", probs: [["Mock Interview Problem 1", "med"], ["Mock Interview Problem 2", "med"], ["Mock Interview Problem 3", "hard"]] },
+  { pattern: "Company Prep", probs: [["Meta tagged — hard array", "hard"], ["Google tagged — DP", "hard"], ["Amazon tagged — system", "med"]] },
+  { pattern: "Company Prep", probs: [["Microsoft tagged", "med"], ["Apple tagged", "med"], ["Netflix tagged", "hard"]] },
+  { pattern: "Company Prep", probs: [["Stripe tagged", "med"], ["Databricks tagged", "hard"], ["Snowflake tagged", "med"]] },
+  { pattern: "Company Prep", probs: [["OpenAI tagged", "med"], ["Anthropic tagged", "hard"], ["Waymo tagged", "hard"]] },
+  { pattern: "Company Prep", probs: [["Bloomberg tagged", "med"], ["Two Sigma tagged", "hard"], ["Citadel tagged", "hard"]] },
+  { pattern: "Final Review — Weak Spots", probs: [["Your hardest pattern (revisit)", "hard"], ["Second hardest (revisit)", "hard"], ["Random medium", "med"]] },
+  { pattern: "Final Review — Weak Spots", probs: [["Full mock: 2 mediums timed 45 min", "med"], ["Hard problem attempt", "hard"], ["Review any skipped problems", "med"]] },
+  { pattern: "Final Review — Weak Spots", probs: [["Timed contest simulation", "hard"], ["Review all patterns list", "med"], ["Write down patterns learned", "easy"]] },
+  { pattern: "Final Review — Weak Spots", probs: [["Last hard problem", "hard"], ["Favorite medium revisit", "med"], ["Celebrate — you did it", "easy"]] },
+];
+
+const LINKEDIN_IDEAS = [
+  "Bayes' theorem with one concrete example — no formulas needed",
+  "What conditional probability actually means (with a fun example)",
+  "The Normal distribution shows up everywhere — here's why",
+  "Expectation and variance: what they tell you that mean doesn't",
+  "The Central Limit Theorem explained without a textbook",
+  "Why the Law of Large Numbers matters for ML models",
+  "Week 1 wrap: 3 probability concepts that changed how I think about data",
+  "MLE: how a model 'learns' from data — explained from scratch",
+  "MAP vs MLE: the one line that explains regularization",
+  "p-values: what they actually mean (most people get this wrong)",
+  "How to design an A/B test: the stats behind it",
+  "Bias-variance tradeoff: the fundamental tension in ML",
+  "Why cross-validation works and when it doesn't",
+  "Week 2 wrap: stats concepts every DS should know cold",
+  "Why matrix multiplication is everywhere in deep learning",
+  "Eigenvectors explained with zero math — just intuition",
+  "SVD: the algorithm that powers Netflix recommendations, Google search, and more",
+  "Gradient descent is just going downhill — here's the math",
+  "Backpropagation is just the chain rule — here's a 1-minute proof",
+  "Why your learning rate matters more than your model architecture",
+  "Week 3 wrap: linear algebra and calculus for ML — what you actually need",
+  "I derived linear regression from scratch — here's what I learned",
+  "Logistic regression: the most underrated algorithm in ML",
+  "L1 vs L2 regularization — the geometric intuition nobody explains",
+  "The SVM kernel trick: infinite dimensions in O(n) time",
+  "Decision trees: how a model learns to ask questions",
+  "AUC-ROC vs Precision-Recall: when to use which",
+  "Week 4 wrap: classical ML algorithms every interview will test",
+  "Why Random Forests work (and when they don't)",
+  "Gradient boosting: learning from your mistakes, literally",
+  "XGBoost vs LightGBM: the difference that matters for speed",
+  "K-Means: elegant simplicity, surprising power",
+  "PCA: seeing data from the angles that matter most",
+  "Feature engineering is 80% of the job — here's how to do it",
+  "Week 5 wrap: ensembles and unsupervised — what I'm building with these",
+  "Data leakage: the subtle mistake that ruins ML models in production",
+  "Class imbalance: why 99% accuracy can be a terrible model",
+  "Hyperparameter tuning: why random search beats grid search",
+  "ML interview prep: 5 questions I wasn't ready for",
+  "The ML interview question that tripped me up (and the answer)",
+  "Building an end-to-end ML pipeline from scratch — what I learned",
+  "Week 6 wrap: 6 weeks of classical ML — what stuck",
+  "Neural networks: why non-linearity is everything",
+  "I derived backpropagation by hand — here's what changed",
+  "Adam optimizer: why it's the default and when to switch",
+  "BatchNorm vs LayerNorm: the difference that matters for transformers",
+  "Vanishing gradients: the problem that almost killed deep learning",
+  "Weight initialization matters more than you think — here's why",
+  "Week 7 wrap: neural net fundamentals that every DL engineer should know",
+  "Convolutions explained with no math — just visual intuition",
+  "ResNets: the skip connection that made deep learning actually work",
+  "Transfer learning: why you almost never train from scratch",
+  "YOLO: detecting objects in real time — the idea behind it",
+  "The receptive field: why deep CNNs see the whole image",
+  "CV interview question: how does backprop work through a conv layer?",
+  "Week 8 wrap: computer vision — the concepts behind the models",
+  "Attention is just a weighted average — and that's beautiful",
+  "Query, Key, Value: the transformer intuition no one explains well",
+  "Multi-head attention: why one attention head isn't enough",
+  "BERT vs GPT: the one key architectural difference",
+  "LoRA: fine-tuning a 7B model on a laptop — how it works",
+  "I implemented a transformer from scratch — here's what I understood for the first time",
+  "Week 9 wrap: transformers — going from 'it works' to 'I know why'",
+  "Scaling laws: why bigger models keep working",
+  "RLHF: how ChatGPT learns to be helpful (and not harmful)",
+  "RAG vs fine-tuning: which one you should actually use",
+  "Diffusion models: why adding noise helps you learn to generate",
+  "CLIP: teaching a model to understand images and text together",
+  "I built a RAG pipeline this week — here's what I'd do differently",
+  "Week 10 wrap: LLMs and modern DL — where the field is now",
+  "Feature stores: the infrastructure problem nobody talks about",
+  "Model drift: how a great model becomes a bad one over time",
+  "ML system design: the framework I use for every interview question",
+  "A/B testing ML models in production: it's different from product A/B tests",
+  "Latency vs throughput: the trade-off every ML engineer faces",
+  "I designed a recommendation system from scratch — here's my approach",
+  "Week 11 wrap: ML systems design — the skill that separates seniors",
+  "My GitHub portfolio audit: what I changed and why",
+  "Skingenius: what I built as a data science intern",
+  "Building a non-NLP ML project from scratch — lessons learned",
+  "AgriGPT: how we improved retrieval precision by 16%",
+  "Resume tip: every metric on your resume should be reproducible",
+  "Mock interview reflection: questions that exposed my gaps",
+  "Week 12 wrap: portfolio and projects — building in public",
+  "Probability interview Q that stumped me (and the elegant answer)",
+  "Classical ML interview prep: the 10 questions that keep coming up",
+  "DL interview: explain attention without equations",
+  "The coding pattern that unlocked dynamic programming for me",
+  "Behavioral interviews for DS/ML: the stories that actually land",
+  "13 weeks of studying ML, stats, and DSA — an honest reflection",
+  "Week 13 wrap: the end of the curriculum — what's next",
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+const TOTAL_DAYS = 91;
+let completedDays = JSON.parse(localStorage.getItem('completedDays') || '[]');
+let solvedProblems = JSON.parse(localStorage.getItem('solvedProblems') || '{}');
+let currentDay = null;
+
+function saveState() {
+  try {
+    localStorage.setItem('completedDays', JSON.stringify(completedDays));
+    localStorage.setItem('solvedProblems', JSON.stringify(solvedProblems));
+  } catch(e) {}
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+
+function getDateForDay(dayIndex) {
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + dayIndex);
+  return d;
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function getDayOfWeek(dayIndex) {
+  return getDateForDay(dayIndex).getDay(); // 0=Sun, 6=Sat
+}
+
+function getWeekNum(dayIndex) {
+  return Math.floor(dayIndex / 7) + 1;
+}
+
+function getPhase(dayIndex) {
+  const week = getWeekNum(dayIndex);
+  if (week <= 3) return { label: 'Phase 1 · Foundations', cls: 'p1' };
+  if (week <= 6) return { label: 'Phase 2 · Classical ML', cls: 'p2' };
+  if (week <= 10) return { label: 'Phase 3 · Deep Learning', cls: 'p3' };
+  return { label: 'Phase 4 · Advanced', cls: 'p3' };
+}
+
+function getStreak() {
+  let streak = 0;
+  for (let i = TOTAL_DAYS - 1; i >= 0; i--) {
+    if (completedDays.includes(i)) streak++;
+    else if (i < getTodayIndex()) break;
+  }
+  return streak;
+}
+
+function getTodayIndex() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diff = Math.floor((today - START_DATE) / 86400000);
+  return Math.max(0, Math.min(diff, TOTAL_DAYS - 1));
+}
+
+// ─── RENDER SIDEBAR ───────────────────────────────────────────────────────────
+
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  let html = `<div class="sidebar-section-label">// 13 weeks · 91 days</div>`;
+
+  for (let w = 0; w < 13; w++) {
+    const weekDays = Array.from({length: 7}, (_, i) => w * 7 + i);
+    const allDone = weekDays.every(d => completedDays.includes(d));
+    const weekNum = w + 1;
+    html += `
+      <div class="week-group">
+        <div class="week-header" onclick="toggleWeek(${w})">
+          <span>Week ${weekNum}</span>
+          <span style="font-size:10px">${allDone ? '✓' : ''}</span>
+        </div>
+        <div class="week-days ${w === Math.floor(getTodayIndex()/7) ? 'open' : ''}" id="week-${w}">
+    `;
+    weekDays.forEach(d => {
+      if (d >= TOTAL_DAYS) return;
+      const dow = ['Su','Mo','Tu','We','Th','Fr','Sa'][getDateForDay(d).getDay()];
+      const isDone = completedDays.includes(d);
+      const isActive = currentDay === d;
+      html += `
+        <div class="day-item ${isDone ? 'completed' : ''} ${isActive ? 'active' : ''}" onclick="selectDay(${d})" id="day-item-${d}">
+          <div class="day-dot"></div>
+          <div class="day-name">${dow} · D${d+1}</div>
+          <div class="day-check">✓</div>
+        </div>
+      `;
+    });
+    html += `</div></div>`;
+  }
+
+  sidebar.innerHTML = html;
+}
+
+function toggleWeek(w) {
+  const el = document.getElementById(`week-${w}`);
+  el.classList.toggle('open');
+}
+
+// ─── RENDER MAIN ─────────────────────────────────────────────────────────────
+
+function selectDay(dayIndex) {
+  currentDay = dayIndex;
+  renderSidebar();
+  renderMain(dayIndex);
+  updateTopBar();
+}
+
+function renderMain(dayIndex) {
+  const ml = ML_TOPICS[dayIndex] || ML_TOPICS[ML_TOPICS.length - 1];
+  const dsa = DSA_SCHEDULE[Math.min(dayIndex, DSA_SCHEDULE.length - 1)];
+  const li = LINKEDIN_IDEAS[dayIndex] || LINKEDIN_IDEAS[LINKEDIN_IDEAS.length - 1];
+  const isDone = completedDays.includes(dayIndex);
+  const phase = getPhase(dayIndex);
+  const date = getDateForDay(dayIndex);
+  const dow = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+  // Review day items
+  const reviewDays = [6,13,20,27,34,41,48,55,62,69,76,83,90];
+  const isReviewDay = reviewDays.includes(dayIndex);
+
+  const solvedKey = `day-${dayIndex}`;
+  const solved = solvedProblems[solvedKey] || [];
+
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="day-header">
+      <div class="day-title-wrap">
+        <div class="day-num">Day ${dayIndex + 1} of ${TOTAL_DAYS} · Week ${getWeekNum(dayIndex)}</div>
+        <div class="day-title">${dow}</div>
+        <div class="day-date">${formatDate(date)}</div>
+      </div>
+      <button class="day-complete-btn ${isDone ? 'done' : ''}" onclick="toggleDayComplete(${dayIndex})">
+        ${isDone ? '✓ Completed' : 'Mark Complete'}
+      </button>
+    </div>
+
+    <div class="phase-badge ${phase.cls}">${phase.label}</div>
+
+    <div class="cards-grid">
+      <!-- ML CARD -->
+      <div class="card ml">
+        <div class="card-header">
+          <div class="card-icon">🧠</div>
+          <div class="card-label">ML · Stats · DL</div>
+          <div class="card-time">2:00 – 4:00 PM</div>
+        </div>
+        <div class="card-topic">${ml.topic}</div>
+        <ul class="card-items">
+          ${ml.items.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </div>
+
+      <!-- DSA CARD -->
+      <div class="card dsa">
+        <div class="card-header">
+          <div class="card-icon">⚡</div>
+          <div class="card-label">DSA · ${dsa.pattern}</div>
+          <div class="card-time">6:00 – 7:30 PM</div>
+        </div>
+        <div class="card-topic">${dsa.pattern}</div>
+        <div class="problem-list">
+          ${dsa.probs.map((p, i) => {
+            const pid = `${dayIndex}-${i}`;
+            const isSolved = solved.includes(pid);
+            return `
+              <div class="problem-row ${isSolved ? 'solved' : ''}" onclick="toggleProblem('${pid}', ${dayIndex})">
+                <div class="problem-check">${isSolved ? '✓' : ''}</div>
+                <div class="problem-name">${p[0]}</div>
+                <div class="problem-diff diff-${p[1]}">${p[1]}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- LINKEDIN CARD -->
+      <div class="card li">
+        <div class="card-header">
+          <div class="card-icon">📝</div>
+          <div class="card-label">LinkedIn Post</div>
+          <div class="card-time">4:00 – 4:15 PM</div>
+        </div>
+        <div class="card-topic">Today's post idea</div>
+        <div class="li-hook">"${li}"</div>
+        <div class="li-tip">Write this <strong>right after your study block ends</strong> while it's fresh. 150–250 words max. End with a question to boost comments.</div>
+      </div>
+
+      <!-- REVIEW CARD -->
+      <div class="card review">
+        <div class="card-header">
+          <div class="card-icon">🔁</div>
+          <div class="card-label">Review · 8:15 – 9:00 PM</div>
+        </div>
+        <div class="card-topic">${isReviewDay ? 'Weekly Review Day' : 'Evening Review'}</div>
+        ${isReviewDay
+          ? `<ul class="card-items">
+              <li>Redo hardest problem from the week from scratch</li>
+              <li>Flashcard review: all concepts this week</li>
+              <li>Write down 3 things you'd explain to someone</li>
+              <li>Plan next week's focus</li>
+            </ul>`
+          : `<div class="review-topics">
+              ${ml.items.slice(0,2).map(t => `<span class="review-tag">${t.split(':')[0].split('—')[0].trim().substring(0,30)}</span>`).join('')}
+              <span class="review-tag">${dsa.pattern}</span>
+              <span class="review-tag">flashcards</span>
+              <span class="review-tag">interview Qs</span>
+            </div>
+            <ul class="card-items" style="margin-top:12px">
+              <li>Re-explain today's ML concept from memory</li>
+              <li>Review any DSA problems you got wrong</li>
+              <li>Add 3 new flashcards</li>
+            </ul>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function toggleDayComplete(dayIndex) {
+  if (completedDays.includes(dayIndex)) {
+    completedDays = completedDays.filter(d => d !== dayIndex);
+  } else {
+    completedDays.push(dayIndex);
+  }
+  saveState();
+  renderSidebar();
+  renderMain(dayIndex);
+  updateTopBar();
+}
+
+function toggleProblem(pid, dayIndex) {
+  const key = `day-${dayIndex}`;
+  if (!solvedProblems[key]) solvedProblems[key] = [];
+  if (solvedProblems[key].includes(pid)) {
+    solvedProblems[key] = solvedProblems[key].filter(p => p !== pid);
+  } else {
+    solvedProblems[key].push(pid);
+  }
+  saveState();
+  renderMain(dayIndex);
+}
+
+function updateTopBar() {
+  const pct = Math.round((completedDays.length / TOTAL_DAYS) * 100);
+  document.getElementById('progressLabel').textContent = `${completedDays.length} / ${TOTAL_DAYS} days`;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('streakNum').textContent = getStreak();
+  document.getElementById('todayLabel').textContent = formatDate(new Date());
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+renderSidebar();
+updateTopBar();
+
+// Auto-select today
+const todayIdx = getTodayIndex();
+selectDay(todayIdx);
+// Scroll to today in sidebar
+setTimeout(() => {
+  const el = document.getElementById(`day-item-${todayIdx}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}, 100);
+</script>
+</body>
+</html>
