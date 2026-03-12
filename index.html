@@ -829,6 +829,7 @@ const TOTAL_DAYS = 91;
 let completedDays = JSON.parse(localStorage.getItem('completedDays') || '[]');
 let solvedProblems = JSON.parse(localStorage.getItem('solvedProblems') || '{}');
 let currentDay = null;
+let openWeeks = new Set([Math.floor(getTodayIndex() / 7)]);
 
 function saveState() {
   try {
@@ -897,7 +898,7 @@ function renderSidebar() {
           <span>Week ${weekNum}</span>
           <span style="font-size:10px">${allDone ? '✓' : ''}</span>
         </div>
-        <div class="week-days ${w === Math.floor(getTodayIndex()/7) ? 'open' : ''}" id="week-${w}">
+        <div class="week-days ${openWeeks.has(w) ? 'open' : ''}" id="week-${w}">
     `;
     weekDays.forEach(d => {
       if (d >= TOTAL_DAYS) return;
@@ -919,14 +920,19 @@ function renderSidebar() {
 }
 
 function toggleWeek(w) {
-  const el = document.getElementById(`week-${w}`);
-  el.classList.toggle('open');
+  if (openWeeks.has(w)) {
+    openWeeks.delete(w);
+  } else {
+    openWeeks.add(w);
+  }
+  renderSidebar();
 }
 
 // ─── RENDER MAIN ─────────────────────────────────────────────────────────────
 
 function selectDay(dayIndex) {
   currentDay = dayIndex;
+  openWeeks.add(Math.floor(dayIndex / 7));
   renderSidebar();
   renderMain(dayIndex);
   updateTopBar();
